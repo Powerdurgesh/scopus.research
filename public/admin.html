@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head><title>Admin Viewer</title></head>
+<body>
+<h2>Admin Live Viewer</h2>
+<video autoplay playsinline id="remoteVideo" style="width: 90%; max-width: 500px;"></video>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    const socket = io();
+    const remoteVideo = document.getElementById('remoteVideo');
+    const peer = new RTCPeerConnection();
+
+    peer.ontrack = event => {
+        remoteVideo.srcObject = event.streams[0];
+    };
+
+    peer.onicecandidate = e => {
+        if (e.candidate) socket.emit('candidate', e.candidate);
+    };
+
+    socket.on('offer', async (offer) => {
+        await peer.setRemoteDescription(offer);
+        const answer = await peer.createAnswer();
+        await peer.setLocalDescription(answer);
+        socket.emit('answer', answer);
+    });
+
+    socket.on('candidate', candidate => peer.addIceCandidate(candidate));
+</script>
+</body>
+</html>
